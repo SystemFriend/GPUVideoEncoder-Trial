@@ -1,6 +1,8 @@
 # GPUVideoEncoder Unity Plugin - Trial
 This Unity plugin can record full HD h264 encoded video from RenderTexture realtime.
 
+[![](http://img.youtube.com/vi/IRTtlk19mxM/0.jpg)](https://www.youtube.com/watch?v=IRTtlk19mxM)
+
 <h1>Features</h1>
 * Very low latency by NVIDA nvenc hardware encoder.
 * All process execute in GPU.
