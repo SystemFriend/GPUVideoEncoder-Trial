@@ -17,4 +17,3 @@ This Unity plugin can record full HD h264 encoded video from RenderTexture realt
 
 
 Paid version doesn’t appear the watermark is in release preparation at Unity Asset Store.
-Contact: info+unity@systemfriend.co.jp
