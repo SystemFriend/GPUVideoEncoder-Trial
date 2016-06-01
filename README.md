@@ -18,4 +18,4 @@ This Unity plugin can record full HD h264 encoded video from RenderTexture realt
 * This is the Free Trial version. The watermark appears in the output video.
 
 
-Paid version doesn’t appear the watermark is in release preparation at Unity Asset Store.
+Paid version doesn’t appear the watermark has been released at <a href="https://www.assetstore.unity3d.com/en/#!/content/56254">Unity Asset Store</a>.
