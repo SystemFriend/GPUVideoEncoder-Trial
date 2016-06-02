@@ -42,8 +42,8 @@ namespace GPUVideoEncoder
         {
             if (!this.isRecording && (this.texture.GetNativeTexturePtr() != System.IntPtr.Zero))
             {
-                this.isRecording = true;
                 SfMovieRecord.StartMovieRecord(this.outputFilePath, this.outputFileTitle, this.texture.GetNativeTexturePtr(), this.fps, this.withAudio, (ulong)this.audioDeviceIndex);
+                this.isRecording = true;
                 var worker = new Thread(new ThreadStart(this.FrameOutProcess));
                 worker.Start();
             }
@@ -54,7 +54,6 @@ namespace GPUVideoEncoder
             if (this.isRecording)
             {
                 this.isRecording = false;
-                SfMovieRecord.EndMovieRecord();
             }
         }
 
@@ -73,6 +72,11 @@ namespace GPUVideoEncoder
                 }
             }
             sw.Stop();
+
+            taskFactory.StartNew(() =>
+            {
+                this.StartCoroutine(this.FrameOutFinalize());
+            });
         }
 
         private void FrameOutInMainThread()
@@ -81,6 +85,12 @@ namespace GPUVideoEncoder
             {
                 GL.IssuePluginEvent(SfMovieRecord.GetRenderEventFunc(), 1);
             }
+        }
+
+        private IEnumerator FrameOutFinalize()
+        {
+            yield return new WaitForEndOfFrame();
+            SfMovieRecord.EndMovieRecord();
         }
     }
 }
