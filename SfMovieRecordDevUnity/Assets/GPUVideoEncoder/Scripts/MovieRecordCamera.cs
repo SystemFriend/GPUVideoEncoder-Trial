@@ -18,6 +18,7 @@ namespace GPUVideoEncoder
 
         private int fps = 60;
         private bool isRecording = false;
+        private Thread wokerThread = null;
 
         static void SfMovieRecordPluginDebugCallBack(string message)
         {
@@ -29,12 +30,12 @@ namespace GPUVideoEncoder
             var debugDelegate = new SfMovieRecord.DebugDelegate(SfMovieRecordPluginDebugCallBack);
             var functionPointer = Marshal.GetFunctionPointerForDelegate(debugDelegate);
             SfMovieRecord.SetDebugFunction(functionPointer);
+            this.wokerThread = null;
         }
 
         public void OnApplicationQuit()
         {
             this.EndMovieRecord();
-
             SfMovieRecord.SetDebugFunction(IntPtr.Zero);
         }
 
@@ -44,17 +45,15 @@ namespace GPUVideoEncoder
             {
                 SfMovieRecord.StartMovieRecord(this.outputFilePath, this.outputFileTitle, this.texture.GetNativeTexturePtr(), this.fps, this.withAudio, (ulong)this.audioDeviceIndex);
                 this.isRecording = true;
-                var worker = new Thread(new ThreadStart(this.FrameOutProcess));
-                worker.Start();
+                this.wokerThread = new Thread(new ThreadStart(this.FrameOutProcess));
+                this.wokerThread.Start();
             }
         }
 
         public void EndMovieRecord()
         {
-            if (this.isRecording)
-            {
-                this.isRecording = false;
-            }
+            this.isRecording = false;
+            this.StartCoroutine(this.FrameOutFinalize());
         }
 
         private void FrameOutProcess()
@@ -72,11 +71,6 @@ namespace GPUVideoEncoder
                 }
             }
             sw.Stop();
-
-            taskFactory.StartNew(() =>
-            {
-                this.StartCoroutine(this.FrameOutFinalize());
-            });
         }
 
         private void FrameOutInMainThread()
@@ -89,6 +83,11 @@ namespace GPUVideoEncoder
 
         private IEnumerator FrameOutFinalize()
         {
+            if (this.wokerThread != null)
+            {
+                this.wokerThread.Abort();
+                this.wokerThread = null;
+            }
             yield return new WaitForEndOfFrame();
             SfMovieRecord.EndMovieRecord();
         }
