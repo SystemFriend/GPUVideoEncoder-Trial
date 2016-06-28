@@ -1,24 +1,21 @@
-﻿using SpicyPixel.Threading;
-using System;
+﻿using System;
 using System.Collections;
 using System.Runtime.InteropServices;
-using System.Threading;
 using UnityEngine;
 
 namespace GPUVideoEncoder
 {
-    public class MovieRecordCamera : ConcurrentBehaviour
+    public class MovieRecordCamera : MonoBehaviour
     {
         public RenderTexture texture;
-        public string outputFilePath = System.Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        public string outputFilePath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         public string outputFileTitle = "movie";
         public bool withAudio = true;
         [HideInInspector]
         public int audioDeviceIndex;
 
-        private int fps = 60;
         private bool isRecording = false;
-        private Thread wokerThread = null;
+        private GPUVideoEncodeManager Manager { get; set; }
 
         static void SfMovieRecordPluginDebugCallBack(string message)
         {
@@ -27,10 +24,21 @@ namespace GPUVideoEncoder
 
         void Start()
         {
+            var manager = GameObject.FindObjectOfType(typeof(GPUVideoEncodeManager));
+            if (manager == null)
+            {
+                manager = (GameObject)Instantiate(Resources.Load("Prefabs/GPUVideoEncodeManager"));
+                manager.name = "GPUVideoEncodeManager";
+                this.Manager = (manager as GameObject).GetComponent<GPUVideoEncodeManager>();
+            }
+            else
+            {
+                this.Manager = (manager as GPUVideoEncodeManager);
+            }
+
             var debugDelegate = new SfMovieRecord.DebugDelegate(SfMovieRecordPluginDebugCallBack);
             var functionPointer = Marshal.GetFunctionPointerForDelegate(debugDelegate);
             SfMovieRecord.SetDebugFunction(functionPointer);
-            this.wokerThread = null;
         }
 
         public void OnApplicationQuit()
@@ -41,55 +49,28 @@ namespace GPUVideoEncoder
 
         public void StartMovieRecord()
         {
-            if (!this.isRecording && (this.texture.GetNativeTexturePtr() != System.IntPtr.Zero))
+            if (!this.isRecording && (this.texture.GetNativeTexturePtr() != IntPtr.Zero) && this.Manager.IsEncoderAddable)
             {
-                SfMovieRecord.StartMovieRecord(this.outputFilePath, this.outputFileTitle, this.texture.GetNativeTexturePtr(), this.fps, this.withAudio, (ulong)this.audioDeviceIndex);
+                SfMovieRecord.StartMovieRecord(this.outputFilePath, this.outputFileTitle, this.texture.GetNativeTexturePtr(), this.Manager.FPS, this.withAudio, (ulong)this.audioDeviceIndex);
+                this.Manager.AddCamera(this);
                 this.isRecording = true;
-                this.wokerThread = new Thread(new ThreadStart(this.FrameOutProcess));
-                this.wokerThread.Start();
             }
         }
 
         public void EndMovieRecord()
         {
-            this.isRecording = false;
-            this.StartCoroutine(this.FrameOutFinalize());
-        }
-
-        private void FrameOutProcess()
-        {
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
-            int interval = (1000 / this.fps);
-            while (this.isRecording)
-            {
-                if (sw.ElapsedMilliseconds > interval)
-                {
-                    taskFactory.StartNew(() => this.FrameOutInMainThread());
-                    sw.Reset();
-                    sw.Start();
-                }
-            }
-            sw.Stop();
-        }
-
-        private void FrameOutInMainThread()
-        {
             if (this.isRecording)
             {
-                GL.IssuePluginEvent(SfMovieRecord.GetRenderEventFunc(), 1);
+                this.StartCoroutine(this.FrameOutFinalize());
             }
         }
 
         private IEnumerator FrameOutFinalize()
         {
-            if (this.wokerThread != null)
-            {
-                this.wokerThread.Abort();
-                this.wokerThread = null;
-            }
+            this.Manager.RemoveCamera(this);
             yield return new WaitForEndOfFrame();
-            SfMovieRecord.EndMovieRecord();
+            SfMovieRecord.EndMovieRecord(this.outputFilePath, this.outputFileTitle);
+            this.isRecording = false;
         }
     }
 }
