@@ -86,13 +86,13 @@ namespace GPUVideoEncoder
             }
         }
 
-        [DllImport("SfMovieRecordPlugin")]
-        private static extern bool SfMR_EndMovieRecord();
-        public static void EndMovieRecord()
+        [DllImport("SfMovieRecordPlugin", CharSet = CharSet.Unicode)]
+        private static extern bool SfMR_EndMovieRecord(string outputPath, string fileTitle);
+        public static void EndMovieRecord(string outputPath, string fileTitle)
         {
             if (IsValidPlatform())
             {
-                if (!SfMR_EndMovieRecord())
+                if (!SfMR_EndMovieRecord(outputPath, fileTitle))
                 {
                     throw new GPUVideoEncoderException(GetLastErrorMessage());
                 }
