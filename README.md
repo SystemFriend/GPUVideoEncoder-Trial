@@ -8,6 +8,7 @@ This Unity plugin can record full HD h264 encoded video from RenderTexture realt
 * All process execute in GPU.
 * Full HD (1920 x 1080) 60fps, realtime video encoding.
 * Realtime audio recording</br>
+* Multi cameras recording at same time.[Paid version only]</br>
 
 <h1>Environment</h1>
 * Windows x86_64 DX11 Environment only.
